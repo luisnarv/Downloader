@@ -14,7 +14,7 @@ import Layout from '../layouts/Layout.astro';
 			<option value="mp4" >MP4</option>
 		</select>
 	</div>
-
+<a href=""></a>
 	<p id="error"></p>
 	<br>
 	<button id="download" class="p-6 w-full text-2xl font-bold rounded-xl text-center bg-gradient-to-l from-violet-600 from-20% via-violet-700 via-40% to-via-900 to-80%">Descargar</button>
@@ -22,7 +22,7 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-	const URLVIDEO ="http://localhost:3000/download/video"
+	const URLVIDEO ="http://localhost:3000/download/audio"
 	const url = document.getElementById("url");
 	const button = document.getElementById("download")
 	const format = document.getElementById("format")
@@ -33,23 +33,52 @@ import Layout from '../layouts/Layout.astro';
 	url.addEventListener("change", (e) => {userUrl = e.target?.value});
 	format.addEventListener("change", (e) => {urlFormat = e.target?.value});
 
-button.addEventListener("click", ()=>{
+button.addEventListener("click",async ()=>{
 
 	try {
-		fetch(`${URLVIDEO}?url=${userUrl}`)
-		.then(response => response.json())
-		.then(res => res )
-		
+	 const data = await fetch(`${URLVIDEO}?url=${userUrl}`)
+	 const blod =  await  data.blob();
+	 handlePermission(blod);
+
 		url.value="";
 
 	} catch (error) {
 		document.getElementById("error").textContent="Se detectó un error al momento de hacer la solicitud"
+		console.error(error.message)
 	}
-
 	url.removeEventListener("input", (e) => {userUrl = e.target?.value});
 	format.removeEventListener("change", (e) => {urlFormat = e.target?.value});
   
 })
 
+
+const handlePermission = async (blob) => {
+  try {
+	const opts = {
+    types: [
+      {
+        description: "audio/mpeg",
+		accept: {
+        "audio/*": [".mp3", ".wav", ".ogg", ".aac", ".flac", ".m4a", ".wma"],
+      },
+      },
+    ],
+  };
+    const handle = await window.showSaveFilePicker(opts);
+    const writable = await handle.createWritable();
+	 const arrayBuffer = await blob.arrayBuffer();
+
+	const fileName = handle.name.endsWith('.mp3') ? handle.name : `${handle.name}.mp3`;
+	const mimeType = "audio/mpeg";
+    await writable.write(blob, {fileName:fileName, mineType:mimeType});
+
+    // Escribir el Blob en el sistema local del usuario
+    await writable.close();
+
+    console.log("Archivo guardado exitosamente");
+  } catch (error) {
+    console.error("Error al guardar el archivo:", error);
+  }
+};
 </script>
 
