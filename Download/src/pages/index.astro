@@ -6,7 +6,7 @@ import Layout from '../layouts/Layout.astro';
 	<main class="w-full h-full flex-col p-9 items-center flex justify-around">
 	<h1 class="text-5xl h-20 text-center uppercase font-semibold">Descarga videos</h1>
 
-	<div class=" w-[full] inline-flex gap-3">
+	<div id="layout" class=" w-[full] inline-flex gap-3">
 		<input   class=" w-[70%] border-none outline-none text-violet-700 p-3 rounded-2xl" id="url" type="text" name="url" placeholder="Ingresa tu URL" >
 		<select class=" w-[30%] text-fuchsia-900 border-none outline-none rounded-xl p-2" id="format"  >
 			<option>Elegir formato</option>
@@ -18,28 +18,39 @@ import Layout from '../layouts/Layout.astro';
 	<p id="error"></p>
 	<br>
 	<button id="download" class="p-6 w-full text-2xl font-bold rounded-xl text-center bg-gradient-to-l from-violet-600 from-20% via-violet-700 via-40% to-via-900 to-80%">Descargar</button>
+	<button id="save" class="p-6 w-full text-2xl font-bold rounded-xl text-center bg-gradient-to-l from-violet-600 from-20% via-violet-700 via-40% to-via-900 to-80%">Guardar descarga</button>
 	</main>
 </Layout>
 
 <script>
-	const URLVIDEO ="http://localhost:3000/download/audio"
+	let responseData;
+	const layout = document.getElementById("layout");
+	const URLVIDEO ="http://localhost:4000/download/audio"
 	const url = document.getElementById("url");
 	const button = document.getElementById("download")
+	const save = document.getElementById("save")
 	const format = document.getElementById("format")
 	let userUrl = "";
 	let urlFormat = "";
-	
 
 	url.addEventListener("change", (e) => {userUrl = e.target?.value});
 	format.addEventListener("change", (e) => {urlFormat = e.target?.value});
 
+ function showDownloadingIndicator(){
+	layout.classList.add("showDownloadingIndicator");
+}
+
+ function hideDownloadingIndicator(){
+	layout.classList.add("hideDownloadingIndicator");
+ }
+ save.addEventListener("click",()=>{ handlePermission(responseData);} )
+
 button.addEventListener("click",async ()=>{
-
-	try {
-	 const data = await fetch(`${URLVIDEO}?url=${userUrl}`)
-	 const blod =  await  data.blob();
-	 handlePermission(blod);
-
+try {
+		showDownloadingIndicator();
+		const data = await fetch(`${URLVIDEO}?url=${userUrl}`)
+		 responseData = await data.blob();
+		hideDownloadingIndicator();
 		url.value="";
 
 	} catch (error) {
@@ -48,10 +59,24 @@ button.addEventListener("click",async ()=>{
 	}
 	url.removeEventListener("input", (e) => {userUrl = e.target?.value});
 	format.removeEventListener("change", (e) => {urlFormat = e.target?.value});
-  
 })
 
+button.removeEventListener("click",async ()=>{
+try {
+		showDownloadingIndicator();
+		const data = await fetch(`${URLVIDEO}?url=${userUrl}`)
+		const responseData = await data.blob();
+		hideDownloadingIndicator();
+		url.value="";
 
+	} catch (error) {
+		document.getElementById("error").textContent="Se detectó un error al momento de hacer la solicitud"
+		console.error(error.message)
+	}
+	url.removeEventListener("input", (e) => {userUrl = e.target?.value});
+	format.removeEventListener("change", (e) => {urlFormat = e.target?.value});
+})
+  
 const handlePermission = async (blob) => {
   try {
 	const opts = {
@@ -66,7 +91,7 @@ const handlePermission = async (blob) => {
   };
     const handle = await window.showSaveFilePicker(opts);
     const writable = await handle.createWritable();
-	 const arrayBuffer = await blob.arrayBuffer();
+	//  const arrayBuffer = await blob.arrayBuffer();
 
 	const fileName = handle.name.endsWith('.mp3') ? handle.name : `${handle.name}.mp3`;
 	const mimeType = "audio/mpeg";
@@ -82,3 +107,11 @@ const handlePermission = async (blob) => {
 };
 </script>
 
+<style>
+	.showDownloadingIndicator{
+		display: none;
+	}
+	.hideDownloadingIndicator{
+		display: block;
+	}
+</style>
